@@ -35,3 +35,9 @@ body {
   height: 1.2em !important;
   width: 1.2em !important;
 }
+
+
+.notion-column>:last-child{
+  justify-content: center;
+  padding: 2em;
+}
