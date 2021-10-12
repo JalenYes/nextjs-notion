@@ -92,12 +92,10 @@
   filter: brightness(120%);
 }
 
-/* .notion-page-link .notion-block-a2f603d27f9c4b199165d0fce0cf3943,
-.notion-page-link .notion-block-dea7cf4fadbf49ec988e251b89a8ebc5,
-.notion-page-link .notion-block-30db8d99e99c4a7abf570d3bfdaee9c6 {
+.notion-page-link{
   justify-content: center;
   padding: 2em;
-} */
+}
 
 /* only target safari */
 @media screen and (-webkit-min-device-pixel-ratio: 0) {
