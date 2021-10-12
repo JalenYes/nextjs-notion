@@ -92,10 +92,9 @@
   filter: brightness(120%);
 }
 
-a.notion-block-a2f603d27f9c4b199165d0fce0cf3943 
-a.notion-block-dea7cf4fadbf49ec988e251b89a8ebc5
-a.notion-block-30db8d99e99c4a7abf570d3bfdaee9c6
-a.notion-page-link {
+.notion-page-link .notion-block-a2f603d27f9c4b199165d0fce0cf3943,
+.notion-page-link .notion-block-dea7cf4fadbf49ec988e251b89a8ebc5,
+.notion-page-link .notion-block-30db8d99e99c4a7abf570d3bfdaee9c6 {
   justify-content: center;
   padding: 2em;
 }
@@ -185,7 +184,6 @@ a.notion-page-link {
   border-radius: 24px;
   box-shadow: 2px 2px 8px 4px rgba(15, 15, 15, 0.1);
 }
-
 
 @media only screen and (max-width: 1200px) {
   .notion-page-cover {
