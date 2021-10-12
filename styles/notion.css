@@ -92,6 +92,14 @@
   filter: brightness(120%);
 }
 
+a.notion-block-a2f603d27f9c4b199165d0fce0cf3943 
+a.notion-block-dea7cf4fadbf49ec988e251b89a8ebc5
+a.notion-block-30db8d99e99c4a7abf570d3bfdaee9c6
+a.notion-page-link {
+  justify-content: center;
+  padding: 2em;
+}
+
 /* only target safari */
 @media screen and (-webkit-min-device-pixel-ratio: 0) {
   _::-webkit-full-page-media,
@@ -183,11 +191,6 @@
   .notion-page-cover {
     border-radius: 0;
   }
-}
-
-.notion-block-a2f603d27f9c4b199165d0fce0cf3943 .notion-page-link {
-  justify-content: center;
-  padding: 2em;
 }
 
 .notion-code {
