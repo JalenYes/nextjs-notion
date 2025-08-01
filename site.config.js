@@ -1,3 +1,4 @@
+
 module.exports = {
   // where it all starts -- the site's root Notion page (required)
   rootNotionPageId: '3443b0e9ced74c99a4ba090d34ee10f0',

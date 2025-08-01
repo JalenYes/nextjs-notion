@@ -1,99 +1,134 @@
 /**
  * Site-wide app configuration.
  *
- * This file pulls from the root "site.config.js" as well as environment variables
+ * This file pulls from the root "site.config.ts" as well as environment variables
  * for optional depenencies.
  */
-
 import { parsePageId } from 'notion-utils'
-import { getSiteConfig, getEnv } from './get-config-value'
-import { PageUrlOverridesMap, PageUrlOverridesInverseMap } from './types'
+import { type PostHogConfig } from 'posthog-js'
+
+import {
+  getEnv,
+  getRequiredSiteConfig,
+  getSiteConfig
+} from './get-config-value'
+import { type NavigationLink } from './site-config'
+import {
+  type NavigationStyle,
+  type PageUrlOverridesInverseMap,
+  type PageUrlOverridesMap,
+  type Site
+} from './types'
 
 export const rootNotionPageId: string = parsePageId(
   getSiteConfig('rootNotionPageId'),
   { uuid: false }
-)
+)!
 
 if (!rootNotionPageId) {
   throw new Error('Config error invalid "rootNotionPageId"')
 }
 
 // if you want to restrict pages to a single notion workspace (optional)
-export const rootNotionSpaceId: string | null = parsePageId(
-  getSiteConfig('rootNotionSpaceId', null),
-  { uuid: true }
-)
+export const rootNotionSpaceId: string | null =
+  parsePageId(getSiteConfig('rootNotionSpaceId'), { uuid: true }) ?? null
 
 export const pageUrlOverrides = cleanPageUrlMap(
   getSiteConfig('pageUrlOverrides', {}) || {},
-  'pageUrlOverrides'
+  { label: 'pageUrlOverrides' }
+)
+
+export const pageUrlAdditions = cleanPageUrlMap(
+  getSiteConfig('pageUrlAdditions', {}) || {},
+  { label: 'pageUrlAdditions' }
 )
 
 export const inversePageUrlOverrides = invertPageUrlOverrides(pageUrlOverrides)
 
-export const pageUrlAdditions = cleanPageUrlMap(
-  getSiteConfig('pageUrlAdditions', {}) || {},
-  'pageUrlAdditions'
-)
+export const environment = process.env.NODE_ENV || 'development'
+export const isDev = environment === 'development'
 
 // general site config
-export const name: string = getSiteConfig('name')
-export const author: string = getSiteConfig('author')
-export const domain: string = getSiteConfig('domain')
+export const name: string = getRequiredSiteConfig('name')
+export const author: string = getRequiredSiteConfig('author')
+export const domain: string = getRequiredSiteConfig('domain')
 export const description: string = getSiteConfig('description', 'Notion Blog')
+export const language: string = getSiteConfig('language', 'en')
 
 // social accounts
-export const twitter: string | null = getSiteConfig('twitter', null)
-export const github: string | null = getSiteConfig('github', null)
-export const linkedin: string | null = getSiteConfig('linkedin', null)
+export const twitter: string | undefined = getSiteConfig('twitter')
+export const mastodon: string | undefined = getSiteConfig('mastodon')
+export const github: string | undefined = getSiteConfig('github')
+export const youtube: string | undefined = getSiteConfig('youtube')
+export const linkedin: string | undefined = getSiteConfig('linkedin')
+export const newsletter: string | undefined = getSiteConfig('newsletter')
+export const zhihu: string | undefined = getSiteConfig('zhihu')
 
-export const socialImageTitle: string | null = getSiteConfig(
-  'socialImageTitle',
-  null
-)
-export const socialImageSubtitle: string | null = getSiteConfig(
-  'socialImageSubtitle',
-  null
-)
+export const getMastodonHandle = (): string | undefined => {
+  if (!mastodon) {
+    return
+  }
+
+  // Since Mastodon is decentralized, handles include the instance domain name.
+  // e.g. @example@mastodon.social
+  const url = new URL(mastodon)
+  return `${url.pathname.slice(1)}@${url.hostname}`
+}
 
 // default notion values for site-wide consistency (optional; may be overridden on a per-page basis)
-export const defaultPageIcon: string | null = getSiteConfig(
-  'defaultPageIcon',
-  null
-)
-export const defaultPageCover: string | null = getSiteConfig(
-  'defaultPageCover',
-  null
-)
+export const defaultPageIcon: string | undefined =
+  getSiteConfig('defaultPageIcon')
+export const defaultPageCover: string | undefined =
+  getSiteConfig('defaultPageCover')
 export const defaultPageCoverPosition: number = getSiteConfig(
   'defaultPageCoverPosition',
   0.5
 )
 
-// Optional utteranc.es comments via GitHub issue comments
-export const utterancesGitHubRepo: string | null = getSiteConfig(
-  'utterancesGitHubRepo',
-  null
-)
-
-// Optional image CDN host to proxy all image requests through
-export const imageCDNHost: string | null = getSiteConfig('imageCDNHost', null)
-
 // Optional whether or not to enable support for LQIP preview images
-// (requires a Google Firebase collection)
 export const isPreviewImageSupportEnabled: boolean = getSiteConfig(
   'isPreviewImageSupportEnabled',
   false
 )
 
-export const isDev =
-  process.env.NODE_ENV === 'development' || !process.env.NODE_ENV
-
-// where it all starts -- the site's root Notion page
+// Optional whether or not to include the Notion ID in page URLs or just use slugs
 export const includeNotionIdInUrls: boolean = getSiteConfig(
   'includeNotionIdInUrls',
   !!isDev
 )
+
+export const navigationStyle: NavigationStyle = getSiteConfig(
+  'navigationStyle',
+  'default'
+)
+
+export const navigationLinks: Array<NavigationLink | undefined> = getSiteConfig(
+  'navigationLinks',
+  null
+)
+
+// Optional site search
+export const isSearchEnabled: boolean = getSiteConfig('isSearchEnabled', true)
+
+// ----------------------------------------------------------------------------
+
+// Optional redis instance for persisting preview images
+export const isRedisEnabled: boolean =
+  getSiteConfig('isRedisEnabled', false) || !!getEnv('REDIS_ENABLED', null)
+
+// (if you want to enable redis, only REDIS_HOST and REDIS_PASSWORD are required)
+// we recommend that you store these in a local `.env` file
+export const redisHost = getEnv('REDIS_HOST', isRedisEnabled ? undefined : null)
+export const redisPassword = getEnv(
+  'REDIS_PASSWORD',
+  isRedisEnabled ? undefined : null
+)
+export const redisUser: string = getEnv('REDIS_USER', 'default')
+export const redisUrl = getEnv(
+  'REDIS_URL',
+  isRedisEnabled ? `redis://${redisUser}:${redisPassword}@${redisHost}` : null
+)
+export const redisNamespace = getEnv('REDIS_NAMESPACE', 'preview-images')
 
 // ----------------------------------------------------------------------------
 
@@ -101,67 +136,47 @@ export const isServer = typeof window === 'undefined'
 
 export const port = getEnv('PORT', '3000')
 export const host = isDev ? `http://localhost:${port}` : `https://${domain}`
+export const apiHost = isDev
+  ? host
+  : `https://${process.env.VERCEL_URL || domain}`
 
-export const apiBaseUrl = `${host}/api`
+export const apiBaseUrl = `/api`
 
 export const api = {
-  createPreviewImage: `${apiBaseUrl}/create-preview-image`,
-  searchNotion: `${apiBaseUrl}/search-notion`
+  searchNotion: `${apiBaseUrl}/search-notion`,
+  getNotionPageInfo: `${apiBaseUrl}/notion-page-info`,
+  getSocialImage: `${apiBaseUrl}/social-image`
 }
 
 // ----------------------------------------------------------------------------
 
-export const fathomId = isDev ? null : process.env.NEXT_PUBLIC_FATHOM_ID
+export const site: Site = {
+  domain,
+  name,
+  rootNotionPageId,
+  rootNotionSpaceId,
+  description
+}
 
+export const fathomId = isDev ? undefined : process.env.NEXT_PUBLIC_FATHOM_ID
 export const fathomConfig = fathomId
   ? {
       excludedDomains: ['localhost', 'localhost:3000']
     }
   : undefined
 
-const defaultEnvValueForPreviewImageSupport =
-  isPreviewImageSupportEnabled && isServer ? undefined : null
-
-export const googleProjectId = getEnv(
-  'GCLOUD_PROJECT',
-  defaultEnvValueForPreviewImageSupport
-)
-
-export const googleApplicationCredentials = getGoogleApplicationCredentials()
-
-export const firebaseCollectionImages = getEnv(
-  'FIREBASE_COLLECTION_IMAGES',
-  defaultEnvValueForPreviewImageSupport
-)
-
-// this hack is necessary because vercel doesn't support secret files so we need to encode our google
-// credentials a base64-encoded string of the JSON-ified content
-function getGoogleApplicationCredentials() {
-  if (!isPreviewImageSupportEnabled || !isServer) {
-    return null
-  }
-
-  try {
-    const googleApplicationCredentialsBase64 = getEnv(
-      'GOOGLE_APPLICATION_CREDENTIALS',
-      defaultEnvValueForPreviewImageSupport
-    )
-
-    return JSON.parse(
-      Buffer.from(googleApplicationCredentialsBase64, 'base64').toString()
-    )
-  } catch (err) {
-    console.error(
-      'Firebase config error: invalid "GOOGLE_APPLICATION_CREDENTIALS" should be base64-encoded JSON\n'
-    )
-
-    throw err
-  }
+export const posthogId = process.env.NEXT_PUBLIC_POSTHOG_ID
+export const posthogConfig: Partial<PostHogConfig> = {
+  api_host: 'https://app.posthog.com'
 }
 
 function cleanPageUrlMap(
   pageUrlMap: PageUrlOverridesMap,
-  label: string
+  {
+    label
+  }: {
+    label: string
+  }
 ): PageUrlOverridesMap {
   return Object.keys(pageUrlMap).reduce((acc, uri) => {
     const pageId = pageUrlMap[uri]
@@ -194,7 +209,7 @@ function invertPageUrlOverrides(
   pageUrlOverrides: PageUrlOverridesMap
 ): PageUrlOverridesInverseMap {
   return Object.keys(pageUrlOverrides).reduce((acc, uri) => {
-    const pageId = pageUrlOverrides[uri]
+    const pageId = pageUrlOverrides[uri]!
 
     return {
       ...acc,
