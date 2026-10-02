@@ -6,6 +6,7 @@ import * as config from './config'
 import { includeNotionIdInUrls } from './config'
 import { getCanonicalPageId } from './get-canonical-page-id'
 import { notion } from './notion-api'
+import { withRetry } from './retry'
 
 const uuid = !!includeNotionIdInUrls
 
@@ -27,12 +28,16 @@ const getAllPages = pMemoize(getAllPagesImpl, {
 
 const getPage = async (pageId: string, opts?: any) => {
   console.log('\nnotion getPage', uuidToId(pageId))
-  return notion.getPage(pageId, {
-    kyOptions: {
-      timeout: 30_000
-    },
-    ...opts
-  })
+  return withRetry(
+    () =>
+      notion.getPage(pageId, {
+        kyOptions: {
+          timeout: 30_000
+        },
+        ...opts
+      }),
+    { label: `getPage ${uuidToId(pageId)}` }
+  )
 }
 
 async function getAllPagesImpl(

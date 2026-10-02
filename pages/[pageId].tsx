@@ -14,7 +14,9 @@ export const getStaticProps: GetStaticProps<PageProps, Params> = async (
   try {
     const props = await resolveNotionPage(domain, rawPageId)
 
-    return { props, revalidate: 10 }
+    // NOTE: see pages/index.tsx — infrequent revalidation keeps Notion's
+    // unofficial API from rate-limiting / blocking our server IPs.
+    return { props, revalidate: 3600 }
   } catch (err) {
     console.error('page error', domain, rawPageId, err)
 

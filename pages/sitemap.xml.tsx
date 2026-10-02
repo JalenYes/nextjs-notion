@@ -15,7 +15,15 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
     }
   }
 
-  const siteMap = await getSiteMap()
+  // NOTE: getSiteMap() hits Notion's unofficial API, which intermittently
+  // blocks datacenter IPs. Never let a Notion outage turn into a 500 here —
+  // serve a minimal sitemap instead and let the next request retry.
+  let siteMap: SiteMap | null = null
+  try {
+    siteMap = await getSiteMap()
+  } catch (err) {
+    console.error('sitemap: getSiteMap failed; serving minimal sitemap', err)
+  }
 
   // cache for up to 8 hours
   res.setHeader(
@@ -31,7 +39,7 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
   }
 }
 
-const createSitemap = (siteMap: SiteMap) =>
+const createSitemap = (siteMap: SiteMap | null) =>
   `<?xml version="1.0" encoding="UTF-8"?>
   <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
@@ -42,15 +50,19 @@ const createSitemap = (siteMap: SiteMap) =>
       <loc>${host}/</loc>
     </url>
 
-    ${Object.keys(siteMap.canonicalPageMap)
-      .map((canonicalPagePath) =>
-        `
+    ${
+      siteMap
+        ? Object.keys(siteMap.canonicalPageMap)
+            .map((canonicalPagePath) =>
+              `
           <url>
             <loc>${host}/${canonicalPagePath}</loc>
           </url>
         `.trim()
-      )
-      .join('')}
+            )
+            .join('')
+        : ''
+    }
   </urlset>
 `
 
