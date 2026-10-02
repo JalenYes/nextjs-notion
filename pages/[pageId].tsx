@@ -34,20 +34,36 @@ export async function getStaticPaths() {
     }
   }
 
-  const siteMap = await getSiteMap()
+  // NOTE: getSiteMap() hits Notion's unofficial API, which intermittently
+  // blocks datacenter IPs. A transient Notion outage must never fail the
+  // production build, so fall back to on-demand page generation here and let
+  // ISR fill pages in at request time.
+  try {
+    const siteMap = await getSiteMap()
 
-  const staticPaths = {
-    paths: Object.keys(siteMap.canonicalPageMap).map((pageId) => ({
-      params: {
-        pageId
-      }
-    })),
-    // paths: [],
-    fallback: true
+    const staticPaths = {
+      paths: Object.keys(siteMap.canonicalPageMap).map((pageId) => ({
+        params: {
+          pageId
+        }
+      })),
+      // paths: [],
+      fallback: true
+    }
+
+    console.log(staticPaths.paths)
+    return staticPaths
+  } catch (err) {
+    console.error(
+      'getStaticPaths: getSiteMap failed; building with no pre-rendered paths',
+      err
+    )
+
+    return {
+      paths: [],
+      fallback: true
+    }
   }
-
-  console.log(staticPaths.paths)
-  return staticPaths
 }
 
 export default function NotionDomainDynamicPage(props: PageProps) {
